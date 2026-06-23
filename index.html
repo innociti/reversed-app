@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Reverzná hypotéka — finančný model</title>
+<meta name="description" content="Interaktívny finančný model reverznej hypotéky pre Slovensko — Model A (predaj s vecným bremenom) a Model B (úverová), P&L po rokoch a scenáre." />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f4f5f7; --panel:#ffffff; --ink:#1b2230; --muted:#69727f; --line:#e4e7ec;
+  --accent:#3257d6; --accent-soft:#eef2fd; --teal:#0e9384; --amber:#c2750c; --red:#c0392b;
+  --sc-opt:#0e9384; --sc-base:#3257d6; --sc-pes:#c2750c;
+  --radius:14px; --shadow:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.06);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',-apple-system,Segoe UI,Roboto,system-ui,sans-serif;font-size:14px;line-height:1.45}
+.wrap{max-width:1240px;margin:0 auto;padding:22px 20px 64px}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:18px}
+header.top h1{font-size:21px;margin:0 0 3px;font-weight:700;letter-spacing:-.2px}
+header.top p{margin:0;color:var(--muted);font-size:12.5px}
+.badge{font-size:11px;color:var(--accent);background:var(--accent-soft);padding:5px 10px;border-radius:999px;font-weight:600}
+.tabs{display:flex;gap:6px;margin:6px 0 18px;flex-wrap:wrap}
+.tab{padding:9px 16px;border:1px solid var(--line);background:var(--panel);border-radius:10px;cursor:pointer;font-weight:600;font-size:13px;color:var(--muted)}
+.tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.grid{display:grid;grid-template-columns:320px 1fr;gap:18px;align-items:start}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.panel h2{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:0;padding:14px 16px 0}
+.panel .body{padding:14px 16px 18px}
+.ctrl{margin-bottom:15px}
+.ctrl label{display:flex;justify-content:space-between;font-size:12.5px;font-weight:600;margin-bottom:6px;gap:8px}
+.ctrl label .val{color:var(--accent);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent);height:4px;cursor:pointer}
+select{width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff;color:var(--ink)}
+.sub{font-size:11px;color:var(--muted);margin:-3px 0 12px}
+.modelOnly{display:none}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:760px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 14px;box-shadow:var(--shadow)}
+.kpi .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;font-weight:600}
+.kpi .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+.kpi .v small{font-size:12px;font-weight:600;color:var(--muted)}
+.kpi .x{font-size:11.5px;color:var(--muted);margin-top:3px}
+.kpi.good .v{color:var(--teal)} .kpi.warn .v{color:var(--amber)} .kpi.bad .v{color:var(--red)}
+.chartcard{padding:8px 14px 16px}
+.chartcard .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:10px 4px 6px}
+.seg{display:flex;gap:4px;background:var(--bg);padding:3px;border-radius:9px}
+.seg button{border:0;background:transparent;padding:6px 11px;border-radius:7px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:var(--shadow)}
+.legend{display:flex;gap:14px;font-size:11.5px;color:var(--muted);flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.dot{width:9px;height:9px;border-radius:3px;display:inline-block}
+table{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{position:sticky;top:0;background:var(--panel);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.3px;z-index:1}
+tr.death td{background:#fff7ec;font-weight:600}
+tr.nneg td{color:var(--red)}
+.tablewrap{max-height:430px;overflow:auto;border-top:1px solid var(--line)}
+.scn{display:flex;gap:18px;font-size:12px;color:var(--muted);padding:0 4px 8px;flex-wrap:wrap}
+.scn b{color:var(--ink)}
+.foot{margin-top:22px;font-size:11.5px;color:var(--muted);line-height:1.6}
+.foot b{color:var(--ink)}
+h3.sec{font-size:13px;margin:22px 2px 10px;font-weight:700}
+.flowwrap{padding:6px 14px 14px}
+.flow{font-size:12.5px;line-height:1.9}
+.pill{display:inline-block;padding:2px 8px;border-radius:6px;background:var(--accent-soft);color:var(--accent);font-weight:600;font-size:11.5px}
+.pill.t{background:#e7f6f3;color:var(--teal)} .pill.a{background:#fdf3e3;color:var(--amber)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Reverzná hypotéka — finančný model</h1>
+      <p>Model A (predaj s doživotným užívaním) a Model B (úverová) · P&amp;L po rokoch · scenáre. Vstupy cez posuvníky.</p>
+    </div>
+    <span class="badge" id="domainBadge">reversed.royalewithcheese.sk</span>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" data-model="B">Model B — úverová</div>
+    <div class="tab" data-model="A">Model A — predaj s vecným bremenom</div>
+  </div>
+
+  <div class="grid">
+    <!-- ===== CONTROLS ===== -->
+    <div class="panel">
+      <h2>Vstupné parametre</h2>
+      <div class="body">
+        <div class="ctrl">
+          <label>Typ klienta</label>
+          <select id="type">
+            <option value="couple" selected>Pár (posledný žijúci)</option>
+            <option value="female">Žena (singel)</option>
+            <option value="male">Muž (singel)</option>
+          </select>
+        </div>
+        <div class="ctrl"><label>Hodnota nehnuteľnosti <span class="val" id="V0v"></span></label><input type="range" id="V0" min="50000" max="600000" step="5000" value="200000"></div>
+        <div class="ctrl"><label>Vstupný vek <span class="val" id="agev"></span></label><input type="range" id="age" min="60" max="85" step="1" value="70"></div>
+        <div class="ctrl"><label>Konzervatívny horizont (+rokov) <span class="val" id="bufferv"></span></label><input type="range" id="buffer" min="0" max="12" step="1" value="5"></div>
+        <div class="ctrl"><label>Apreciácia nehnuteľnosti <span class="val" id="gv"></span></label><input type="range" id="g" min="0" max="6" step="0.25" value="3"></div>
+        <div class="ctrl"><label>Náklad senior dlhu (banka) <span class="val" id="rBankv"></span></label><input type="range" id="rBank" min="2" max="6" step="0.1" value="3.5"></div>
+        <div class="ctrl"><label>Páka — podiel bank. dlhu <span class="val" id="debtSharev"></span></label><input type="range" id="debtShare" min="0" max="85" step="5" value="80"></div>
+        <div class="ctrl"><label>Origination poplatok <span class="val" id="origPctv"></span></label><input type="range" id="origPct" min="0" max="3" step="0.25" value="1.5"></div>
+        <div class="ctrl"><label>Náklady predaja pri exite <span class="val" id="sellCostv"></span></label><input type="range" id="sellCost" min="0" max="8" step="0.5" value="5"></div>
+
+        <!-- Model B specific -->
+        <div class="modelOnly mB">
+          <div class="ctrl"><label>Roll-up úrok klientovi <span class="val" id="rcv"></span></label><input type="range" id="rc" min="4" max="9" step="0.1" value="6.5"></div>
+          <div class="ctrl"><label>Cieľové LTV na horizonte <span class="val" id="targetLTVv"></span></label><input type="range" id="targetLTV" min="60" max="95" step="5" value="85"></div>
+          <div class="ctrl"><label>Jednorazová výplata (% hodnoty) <span class="val" id="lumpPctv"></span></label><input type="range" id="lumpPct" min="0" max="40" step="5" value="0"></div>
+          <div class="ctrl"><label>Servis / opex (%/r) <span class="val" id="opexv"></span></label><input type="range" id="opex" min="0" max="2" step="0.1" value="0.8"></div>
+        </div>
+        <!-- Model A specific -->
+        <div class="modelOnly mA">
+          <div class="ctrl"><label>Požadovaný výnos fondu <span class="val" id="rReqv"></span></label><input type="range" id="rReq" min="6" max="14" step="0.5" value="9"></div>
+          <p class="sub">Model A: fond kúpi byt teraz za diskontovanú cenu, klient má vecné bremeno doživotného bývania. Cenu určuje požadovaný výnos.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== OUTPUT ===== -->
+    <div>
+      <div class="kpis" id="kpis"></div>
+
+      <div class="panel chartcard">
+        <div class="row">
+          <div class="legend">
+            <span><i class="dot" style="background:var(--sc-opt)"></i>Optimistický</span>
+            <span><i class="dot" style="background:var(--sc-base)"></i>Báza</span>
+            <span><i class="dot" style="background:var(--sc-pes)"></i>Pesimistický</span>
+            <span style="opacity:.7">○ = predpokladané úmrtie</span>
+          </div>
+          <div class="seg" id="metricSeg">
+            <button class="on" data-metric="nav">Equity NAV fondu</button>
+            <button data-metric="profit">Kumulatívny zisk</button>
+            <button data-metric="dv">Dlh vs hodnota</button>
+          </div>
+        </div>
+        <canvas id="chart" height="118"></canvas>
+        <div class="scn" id="scnNote"></div>
+      </div>
+
+      <h3 class="sec">P&amp;L po rokoch</h3>
+      <div class="panel">
+        <div class="row" style="padding:12px 14px 4px;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+          <div class="seg" id="tableScnSeg">
+            <button data-scn="opt">Optimistický</button>
+            <button class="on" data-scn="base">Báza</button>
+            <button data-scn="pes">Pesimistický</button>
+          </div>
+          <span class="sub" style="margin:0" id="tableHint"></span>
+        </div>
+        <div class="tablewrap"><table id="pnl"><thead></thead><tbody></tbody></table></div>
+      </div>
+
+      <div class="foot" id="assumptions"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====================== ENGINE ======================
+const fmtE = n => (Math.round(n)).toLocaleString('sk-SK')+' €';
+const fmtE0 = n => (Math.round(n)).toLocaleString('sk-SK');
+const fmtP = n => n.toLocaleString('sk-SK',{maximumFractionDigits:1})+' %';
+function fvFactor(i,n){return i===0?n:(Math.pow(1+i,n)-1)/i;}
+function pvAnnuity(pv,j,n){return pv*j/(1-Math.pow(1+j,-n));} // payment of immediate annuity
+function life(t,a,b){const d={male:81,female:86,couple:90}[t];const tMed=Math.max(3,Math.round(d-a));return{tMed,tPrc:tMed+b};}
+function irr(cf){
+  const npv=r=>cf.reduce((s,c,t)=>s+c/Math.pow(1+r,t),0);
+  let lo=-0.95,hi=3,flo=npv(lo),fhi=npv(hi);
+  if(flo*fhi>0)return null;
+  for(let k=0;k<200;k++){const m=(lo+hi)/2,fm=npv(m);if(Math.abs(fm)<1e-3)return m;if(flo*fm<0){hi=m;}else{lo=m;flo=fm;}}
+  return (lo+hi)/2;
+}
+function annualizedFromMoic(moic,years){return years>0 && moic>0 ? Math.pow(moic,1/years)-1 : null;}
+
+function modelB(p){
+  const {tMed,tPrc}=life(p.type,p.age,p.buffer);
+  const i=p.rc/12, n=Math.round(tPrc*12);
+  const VT=p.V0*Math.pow(1+p.g,tPrc), targetDebt=p.targetLTV*VT;
+  const lump=p.lumpPct*p.V0, lumpFut=lump*Math.pow(1+i,n);
+  const monthly=Math.max(0,(targetDebt-lumpFut)/fvFactor(i,n));
+  const roe=(p.rc - p.debtShare*p.rBank - p.opex - 0.005)/Math.max(0.01,(1-p.debtShare)); // steady-state
+  function sim(gR,rbR,death){
+    const ib=rbR/12, maxY=Math.max(tPrc+8,death+2), rows=[];
+    const origFee=p.origPct*p.V0;
+    let invCum=lump*(1-p.debtShare)-origFee;
+    for(let y=1;y<=maxY;y++){
+      const ny=y*12;
+      const D=lump*Math.pow(1+i,ny)+monthly*fvFactor(i,ny);
+      const V=p.V0*Math.pow(1+gR,y);
+      const Bb=lump*p.debtShare*Math.pow(1+ib,ny)+monthly*p.debtShare*fvFactor(ib,ny);
+      invCum += monthly*12*(1-p.debtShare)+p.opex*D;
+      const sale=V*(1-p.sellCost), repay=Math.min(D,sale);
+      const equityNav=repay-Bb-p.opex*D*0; // opex captured in invCum
+      rows.push({y,V,D,Bb,equityNav,ltv:D/V,heirs:Math.max(0,sale-D),nneg:Math.max(0,D-sale),annCum:lump+monthly*ny,invCum,profit:equityNav-invCum});
+    }
+    const r=rows.find(x=>x.y===death)||rows[rows.length-1];
+    const moic=r.invCum>0? r.equityNav/r.invCum : null;
+    return {rows,deathRow:r,death,moic,profit:r.profit,inv:r.invCum,ann:annualizedFromMoic(moic,death)};
+  }
+  return {model:'B',tMed,tPrc,lump,monthly,roe,sim};
+}
+
+function modelA(p){
+  const {tMed,tPrc}=life(p.type,p.age,p.buffer);
+  const exit=p.V0*Math.pow(1+p.g,tMed)*(1-p.sellCost);
+  const purchase=exit/Math.pow(1+p.rReq,tMed);
+  const factor=purchase/p.V0;
+  const equivMonthly=pvAnnuity(purchase,0.03/12,Math.round(tMed*12));
+  function sim(gR,rbR,death){
+    const ib=rbR/12, maxY=Math.max(tPrc+8,death+2), rows=[];
+    const bank0=purchase*p.debtShare, origFee=p.origPct*p.V0, equity0=purchase*(1-p.debtShare)-origFee;
+    for(let y=1;y<=maxY;y++){
+      const ny=y*12, V=p.V0*Math.pow(1+gR,y), Bb=bank0*Math.pow(1+ib,ny), sale=V*(1-p.sellCost);
+      const equityNav=sale-Bb;
+      rows.push({y,V,Bb,equityNav,sale,invCum:equity0,profit:equityNav-equity0});
+    }
+    const r=rows.find(x=>x.y===death)||rows[rows.length-1];
+    const cf=[-equity0]; for(let y=1;y<death;y++)cf[y]=0; cf[death]=r.equityNav;
+    const moic=equity0>0? r.equityNav/equity0:null;
+    return {rows,deathRow:r,death,moic,profit:r.profit,inv:equity0,ann:irr(cf)};
+  }
+  return {model:'A',tMed,tPrc,purchase,factor,equivMonthly,roe:null,sim};
+}
+
+// scenario deltas
+function scenarios(p){
+  const base={g:p.g,rBank:p.rBank};
+  return {
+    opt:{name:'Optimistický',g:p.g+0.015,rBank:Math.max(0.005,p.rBank-0.005),dOff:-3,color:getCSS('--sc-opt')},
+    base:{name:'Báza',g:p.g,rBank:p.rBank,dOff:0,color:getCSS('--sc-base')},
+    pes:{name:'Pesimistický',g:Math.max(0,p.g-0.015),rBank:p.rBank+0.01,dOff:+99,color:getCSS('--sc-pes')}
+  };
+}
+function getCSS(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+
+// ====================== UI STATE ======================
+let MODEL='B', METRIC='nav', TABLE_SCN='base', chart;
+const ids=['V0','age','buffer','g','rBank','debtShare','origPct','sellCost','rc','targetLTV','lumpPct','opex','rReq'];
+const pctIds=new Set(['g','rBank','debtShare','origPct','sellCost','rc','targetLTV','lumpPct','opex','rReq']);
+
+function readParams(){
+  const v=id=>parseFloat(document.getElementById(id).value);
+  return {
+    V0:v('V0'), age:v('age'), type:document.getElementById('type').value, buffer:v('buffer'),
+    g:v('g')/100, rBank:v('rBank')/100, debtShare:v('debtShare')/100, origPct:v('origPct')/100, sellCost:v('sellCost')/100,
+    rc:v('rc')/100, targetLTV:v('targetLTV')/100, lumpPct:v('lumpPct')/100, opex:v('opex')/100, rReq:v('rReq')/100
+  };
+}
+function syncLabels(){
+  const g=id=>document.getElementById(id);
+  g('V0v').textContent=fmtE(+g('V0').value);
+  g('agev').textContent=g('age').value+' r.';
+  g('bufferv').textContent='+'+g('buffer').value+' r.';
+  ['g','rBank','origPct','sellCost','rc','targetLTV','lumpPct','opex','rReq'].forEach(id=>{
+    const u=(id==='lumpPct'||id==='targetLTV'||id==='debtShare')?' %':' %';
+    g(id+'v').textContent=(+g(id).value).toLocaleString('sk-SK',{maximumFractionDigits:2})+u;
+  });
+  g('debtSharev').textContent=g('debtShare').value+' %';
+}
+
+// ====================== RENDER ======================
+function recalc(){
+  syncLabels();
+  const p=readParams();
+  const eng=MODEL==='B'?modelB(p):modelA(p);
+  const sc=scenarios(p);
+  const runs={};
+  for(const key of ['opt','base','pes']){
+    const s=sc[key];
+    const dy = key==='pes' ? eng.tPrc+2 : (key==='opt'? Math.max(2,eng.tMed-3) : eng.tMed);
+    runs[key]=eng.sim(s.g,s.rBank,dy);
+    runs[key].sc=s; runs[key].dy=dy;
+  }
+  renderKPIs(eng,runs,p);
+  renderChart(eng,runs,p);
+  renderTable(eng,runs,p);
+  renderScnNote(eng,runs,p);
+  renderAssumptions(eng,p);
+}
+
+function renderKPIs(eng,runs,p){
+  const box=document.getElementById('kpis'); const b=runs.base; let html='';
+  if(eng.model==='B'){
+    html+=kpi('Klient dostane', (eng.lump>0?fmtE(eng.lump)+' + ':'')+`<small>mes.</small> `+fmtE(eng.monthly).replace(' €','')+' <small>€/mes</small>','doživotná anuita');
+    html+=kpi('Pri úmrtí (báza, rok '+b.dy+')', fmtE(b.deathRow.D), 'dlh klienta · dedičia '+fmtE(b.deathRow.heirs));
+    html+=kpi('Zisk fondu / zmluva', fmtE(b.profit), 'MOIC '+(b.moic?b.moic.toFixed(2)+'×':'–')+' · '+(b.ann!=null?fmtP(b.ann*100)+' p.a.':'–'),'good');
+    html+=kpi('Cieľový výnos portfólia', fmtP(eng.roe*100), 'ROE steady-state pri tejto páke','good');
+  } else {
+    html+=kpi('Klient dostane', fmtE(eng.purchase), (eng.factor*100).toFixed(0)+' % hodnoty · ekv. '+fmtE(eng.equivMonthly)+'/mes');
+    html+=kpi('Hodnota bytu pri úmrtí', fmtE(b.deathRow.V), 'báza, rok '+b.dy);
+    html+=kpi('Zisk fondu / zmluva', fmtE(b.profit), 'MOIC '+(b.moic?b.moic.toFixed(2)+'×':'–'),'good');
+    html+=kpi('IRR equity (báza)', b.ann!=null?fmtP(b.ann*100):'–', 'ročný výnos investora','good');
+  }
+  box.innerHTML=html;
+}
+function kpi(k,v,x,cls){return `<div class="kpi ${cls||''}"><div class="k">${k}</div><div class="v">${v}</div><div class="x">${x||''}</div></div>`;}
+
+function seriesFor(run,metric,maxY){
+  const arr=[];
+  for(let y=1;y<=maxY;y++){
+    const r=run.rows.find(x=>x.y===y); if(!r){arr.push(null);continue;}
+    if(metric==='nav')arr.push(Math.round(r.equityNav));
+    else if(metric==='profit')arr.push(Math.round(r.profit));
+    else arr.push(Math.round(r.D!=null?r.D:r.Bb)); // dv handled separately
+  }
+  return arr;
+}
+function renderChart(eng,runs,p){
+  const maxY=Math.max(runs.pes.rows.length-2, eng.tPrc+6);
+  const labels=Array.from({length:maxY},(_,k)=>k+1);
+  const ctx=document.getElementById('chart');
+  let datasets=[];
+  if(METRIC==='dv'){
+    // base scenario: client debt (B) or bank debt (A) vs property value
+    const r=runs.base.rows;
+    datasets=[
+      line('Hodnota bytu', r.map(x=>Math.round(x.V)).slice(0,maxY), getCSS('--teal'),false),
+      line(eng.model==='B'?'Dlh klienta':'Dlh voči banke', r.map(x=>Math.round(eng.model==='B'?x.D:x.Bb)).slice(0,maxY), getCSS('--accent'),false)
+    ];
+  } else {
+    for(const key of ['opt','base','pes']){
+      const run=runs[key], col=run.sc.color;
+      datasets.push(line(run.sc.name, seriesFor(run,METRIC,maxY), col,false));
+      // death marker point
+      const pts=labels.map(l=> l===run.dy ? (METRIC==='nav'?Math.round(run.deathRow.equityNav):Math.round(run.deathRow.profit)) : null);
+      datasets.push({label:run.sc.name+' – úmrtie',data:pts,borderColor:col,backgroundColor:'#fff',pointBorderColor:col,pointBorderWidth:2,pointRadius:6,showLine:false,order:0});
+    }
+  }
+  const data={labels,datasets};
+  const opts={responsive:true,maintainAspectRatio:true,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false},tooltip:{callbacks:{title:i=>'Rok '+i[0].label,label:c=>c.dataset.label.includes('úmrtie')?null:c.dataset.label+': '+fmtE(c.parsed.y)}}},
+    scales:{x:{title:{display:true,text:'rok od vzniku',color:getCSS('--muted'),font:{size:11}},grid:{display:false}},
+      y:{ticks:{callback:v=>fmtE0(v)},grid:{color:getCSS('--line')}}}};
+  if(chart){chart.data=data;chart.options=opts;chart.update();}
+  else chart=new Chart(ctx,{type:'line',data,options:opts});
+}
+function line(label,data,color,fill){return{label,data,borderColor:color,backgroundColor:color+'22',borderWidth:2.2,tension:.25,pointRadius:0,fill:!!fill,order:2};}
+
+function renderTable(eng,runs,p){
+  const run=runs[TABLE_SCN], thead=document.querySelector('#pnl thead'), tbody=document.querySelector('#pnl tbody');
+  if(eng.model==='B'){
+    thead.innerHTML='<tr><th>Rok</th><th>Hodnota bytu</th><th>Dlh klienta</th><th>Dlh voči banke</th><th>Kum. anuita</th><th>LTV</th><th>Dedičia</th><th>Equity NAV</th></tr>';
+    tbody.innerHTML=run.rows.map(r=>{
+      const cls=(r.y===run.dy?'death ':'')+(r.nneg>0?'nneg':'');
+      return `<tr class="${cls}"><td>${r.y}</td><td>${fmtE0(r.V)}</td><td>${fmtE0(r.D)}</td><td>${fmtE0(r.Bb)}</td><td>${fmtE0(r.annCum)}</td><td>${(r.ltv*100).toFixed(0)} %</td><td>${fmtE0(r.heirs)}</td><td>${fmtE0(r.equityNav)}</td></tr>`;
+    }).join('');
+  } else {
+    thead.innerHTML='<tr><th>Rok</th><th>Hodnota bytu</th><th>Dlh voči banke</th><th>Hodnota po nákl. predaja</th><th>Equity NAV (fond)</th><th>Kum. zisk</th></tr>';
+    tbody.innerHTML=run.rows.map(r=>{
+      const cls=(r.y===run.dy?'death':'');
+      return `<tr class="${cls}"><td>${r.y}</td><td>${fmtE0(r.V)}</td><td>${fmtE0(r.Bb)}</td><td>${fmtE0(r.sale)}</td><td>${fmtE0(r.equityNav)}</td><td>${fmtE0(r.profit)}</td></tr>`;
+    }).join('');
+  }
+  document.getElementById('tableHint').textContent='Zvýraznený riadok = predpokladané úmrtie ('+run.sc.name.toLowerCase()+', rok '+run.dy+').';
+}
+
+function renderScnNote(eng,runs,p){
+  const f=(x)=>x.toLocaleString('sk-SK',{maximumFractionDigits:1});
+  const parts=['opt','base','pes'].map(k=>{
+    const r=runs[k];
+    return `<span><b>${r.sc.name}:</b> apreciácia ${f(r.sc.g*100)} %, banka ${f(r.sc.rBank*100)} %, úmrtie rok ${r.dy}</span>`;
+  });
+  document.getElementById('scnNote').innerHTML=parts.join('');
+}
+
+function renderAssumptions(eng,p){
+  const {tMed,tPrc}=life(p.type,p.age,p.buffer);
+  document.getElementById('assumptions').innerHTML=
+  `<b>Predpoklady:</b> Medián dožitia ${tMed} r., konzervatívny horizont ${tPrc} r. (typ klienta určuje očakávaný vek dožitia: pár 90, žena 86, muž 81). `+
+  (eng.model==='B'
+    ? `Anuita je nacenená tak, aby narastený dlh dosiahol cieľové LTV (${(p.targetLTV*100).toFixed(0)} %) z apreciovanej hodnoty na horizonte. Dlh sa roluje pri ${(p.rc*100).toFixed(1)} %. NNEG: fond vymáha najviac do hodnoty bytu — prebytok ide dedičom. `
+    : `Kúpna cena = diskontovaná hodnota pri exite na požadovaný výnos fondu (${(p.rReq*100).toFixed(1)} %). Klient si ponecháva vecné bremeno doživotného bývania; apreciáciu vlastní fond. `)+
+  `Páka ${(p.debtShare*100).toFixed(0)} % (banka @ ${(p.rBank*100).toFixed(1)} %). <b>Model je ilustračný</b> — mortalita je zjednodušená, bez aktuárskych tabuliek a poistného krytia longevity.`;
+}
+
+// ====================== EVENTS ======================
+ids.forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',recalc);});
+document.getElementById('type').addEventListener('change',recalc);
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active'); MODEL=t.dataset.model;
+  document.querySelectorAll('.mA').forEach(e=>e.style.display=MODEL==='A'?'block':'none');
+  document.querySelectorAll('.mB').forEach(e=>e.style.display=MODEL==='B'?'block':'none');
+  recalc();
+}));
+document.querySelectorAll('#metricSeg button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#metricSeg button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); METRIC=b.dataset.metric; recalc();
+}));
+document.querySelectorAll('#tableScnSeg button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#tableScnSeg button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); TABLE_SCN=b.dataset.scn; recalc();
+}));
+
+// init
+document.querySelectorAll('.mB').forEach(e=>e.style.display='block');
+document.querySelectorAll('.mA').forEach(e=>e.style.display='none');
+recalc();
+</script>
+</body>
+</html>

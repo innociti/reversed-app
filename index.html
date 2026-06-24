@@ -77,6 +77,24 @@ h3.sec{font-size:13px;margin:22px 2px 10px;font-weight:700}
 .costtbl tr.trtot td{font-weight:700;border-top:2px solid var(--line)}
 .costtbl tr.trctx td{color:var(--muted)}
 .costtbl tr.trebitda td{font-weight:700;color:var(--teal)}
+.costtbl td.assume{color:var(--muted);font-size:11px;white-space:normal;min-width:170px;text-align:left}
+.subnote{font-size:10.5px;color:var(--muted);margin:-6px 0 13px;line-height:1.35}
+.flowlegend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:0 2px 14px}
+.flowlegend span{display:inline-flex;align-items:center;gap:6px}
+.flowpanel{padding:14px 16px 18px;margin-bottom:18px}
+.flowtitle{font-size:14px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.flowtitle .tag{font-size:10.5px;font-weight:700;letter-spacing:.3px;padding:2px 8px;border-radius:6px}
+.flowtitle .tag.a{background:#fdf3e3;color:var(--amber)} .flowtitle .tag.b{background:var(--accent-soft);color:var(--accent)}
+.flowrow{display:flex;align-items:stretch;overflow-x:auto;padding-bottom:10px}
+.stage{min-width:212px;width:212px;flex:0 0 auto;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 13px}
+.stage+.stage{margin-left:30px;position:relative}
+.stage+.stage::before{content:"\2192";position:absolute;left:-23px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:18px}
+.stage h4{margin:0 0 5px;font-size:12.5px;font-weight:700}
+.stage p{margin:0 0 9px;font-size:11px;color:var(--muted);line-height:1.4}
+.chip{display:inline-block;font-size:10px;padding:2px 7px;border-radius:6px;margin:2px 3px 0 0}
+.chip.party{background:var(--accent-soft);color:var(--accent)}
+.chip.reg{background:#fdf3e3;color:var(--amber)}
+.chip.core{background:#e7f6f3;color:var(--teal)}
 </style>
 </head>
 <body>
@@ -93,16 +111,17 @@ h3.sec{font-size:13px;margin:22px 2px 10px;font-weight:700}
     <div class="tab active" data-model="B">Model B (úverová)</div>
     <div class="tab" data-model="A">Model A (predaj s vecným bremenom)</div>
     <div class="tab" data-model="P">P&amp;L portfólio</div>
+    <div class="tab" data-model="F">Tok a regulácia</div>
   </div>
 
   <div class="modelbox">
     <div>
       <span class="tag a">MODEL A</span>
-      <b>Predaj s vecným bremenom.</b> Fond kúpi byt teraz za diskontovanú cenu. Klient v ňom býva doživotne (vecné bremeno) a zhodnotenie nehnuteľnosti patrí fondu. Klient dostane menej, no s maximálnou istotou; byt nevstupuje do dedičstva.
+      <b>Predaj s vecným bremenom.</b> Fond kúpi byt na začiatku za diskontovanú cenu. Klient v ňom býva doživotne (so zriadeným vecným bremenom na katastri) a zhodnotenie nehnuteľnosti patrí fondu. Klient dostane menej, ale s maximálnou istotou. Byt (keďže je majetkom fondu) nevstupuje do dedičstva.
     </div>
     <div>
       <span class="tag b">MODEL B</span>
-      <b>Úverová reverzná hypotéka.</b> Byt ostáva vo vlastníctve klienta. Fond vypláca doživotnú rentu ako úver krytý záložným právom; dlh sa kumulatívne navyšuje. Po úmrtí sa byt speňaží, splatí sa dlh a prebytok ide dedičom. Súčasťou je záruka, že dlh neprevýši hodnotu bytu (NNEG).
+      <b>Úverová reverzná hypotéka.</b> Byt ostáva vo vlastníctve klienta. Fond vypláca doživotnú rentu ako úver krytý záložným právom, dlh sa kumulatívne navyšuje. Po úmrtí sa byt speňaží, splatí sa dlh a prebytok ide dedičom. Súčasťou je záruka, že dlh neprevýši hodnotu bytu.
     </div>
   </div>
 
@@ -150,14 +169,29 @@ h3.sec{font-size:13px;margin:22px 2px 10px;font-weight:700}
           <div class="ctrl"><label>Podiel Model B v mixe <span class="val" id="shareBv"></span></label><input type="range" id="shareB" min="0" max="100" step="5" value="70"></div>
           <div class="ctrl"><label>Servisný poplatok (%/r z AUM) <span class="val" id="servicingPctv"></span></label><input type="range" id="servicingPct" min="0" max="2" step="0.1" value="0.5"></div>
           <p class="sub" style="margin:14px 0 8px;font-weight:700;color:var(--ink)">Nákladové predpoklady</p>
+
           <div class="ctrl"><label>Osobné náklady (rok 1) <span class="val" id="personnelY1v"></span></label><input type="range" id="personnelY1" min="0" max="1000000" step="10000" value="180000"></div>
+          <div class="ctrl"><label>Osobné náklady: rast (%/r) <span class="val" id="personnelGrowthv"></span></label><input type="range" id="personnelGrowth" min="0" max="50" step="5" value="25"></div>
+          <p class="subnote">Rastie s tímom; ten sa rozširuje s počtom zmlúv a veľkosťou knihy.</p>
+
           <div class="ctrl"><label>IT a platforma (rok 1) <span class="val" id="itY1v"></span></label><input type="range" id="itY1" min="0" max="500000" step="10000" value="60000"></div>
-          <div class="ctrl"><label>Rast fixných nákladov (%/r) <span class="val" id="fixGrowthv"></span></label><input type="range" id="fixGrowth" min="0" max="50" step="5" value="20"></div>
-          <div class="ctrl"><label>Akvizícia na zmluvu <span class="val" id="cacv"></span></label><input type="range" id="cac" min="0" max="3000" step="50" value="400"></div>
+          <div class="ctrl"><label>IT a platforma: rast (%/r) <span class="val" id="itGrowthv"></span></label><input type="range" id="itGrowth" min="0" max="30" step="1" value="5"></div>
+          <p class="subnote">Prevažne fixné (platforma, hosting, licencie); len mierny rast s objemom dát.</p>
+
+          <div class="ctrl"><label>Akvizícia na zmluvu (CAC) <span class="val" id="cacv"></span></label><input type="range" id="cac" min="0" max="3000" step="50" value="400"></div>
+          <p class="subnote">Variabilné: CAC krát počet nových zmlúv v danom roku.</p>
+
           <div class="ctrl"><label>Oceňovanie, notár, právne / zmluva <span class="val" id="origCostv"></span></label><input type="range" id="origCost" min="0" max="2000" step="50" value="350"></div>
+          <p class="subnote">Jednorazovo na novú zmluvu: znalec, notár, vklad do katastra.</p>
+
           <div class="ctrl"><label>Compliance a poistenie (%/r z AUM) <span class="val" id="compliancePctv"></span></label><input type="range" id="compliancePct" min="0" max="1" step="0.05" value="0.3"></div>
+          <p class="subnote">Škáluje s knihou: NBS dohľad, audit, poistenie zodpovednosti.</p>
+
           <div class="ctrl"><label>Réžia (% tržieb) <span class="val" id="overheadPctv"></span></label><input type="range" id="overheadPct" min="0" max="25" step="1" value="8"></div>
-          <div class="ctrl"><label>Rizikové rezervy (% objemu) <span class="val" id="reservePctv"></span></label><input type="range" id="reservePct" min="0" max="5" step="0.5" value="1.5"></div>
+          <p class="subnote">Kancelárie a ostatná réžia, naviazané na veľkosť biznisu (tržby).</p>
+
+          <div class="ctrl"><label>Rizikové rezervy NNEG (% objemu) <span class="val" id="reservePctv"></span></label><input type="range" id="reservePct" min="0" max="5" step="0.5" value="1.5"></div>
+          <p class="subnote">Rezerva na riziko, že dlh prevýši hodnotu bytu; z objemu nových zmlúv.</p>
         </div>
       </div>
     </div>
@@ -205,6 +239,91 @@ h3.sec{font-size:13px;margin:22px 2px 10px;font-weight:700}
       </div>
 
       <div class="foot" id="assumptions"></div>
+    </div>
+  </div>
+
+  <div id="flowSection" style="display:none">
+    <div class="flowlegend">
+      <span><i class="dot" style="background:var(--teal)"></i>Fond (jadro)</span>
+      <span><i class="dot" style="background:var(--accent)"></i>Partner / 3rd party</span>
+      <span><i class="dot" style="background:var(--amber)"></i>Regulácia</span>
+    </div>
+
+    <div class="panel flowpanel">
+      <div class="flowtitle"><span class="tag a">MODEL A</span> Predaj s vecným bremenom</div>
+      <div class="flowrow">
+        <div class="stage">
+          <h4>1. Ocenenie a nacenenie</h4>
+          <p>Stanovenie hodnoty bytu a kúpnej ceny podľa veku a očakávaného dožitia.</p>
+          <span class="chip party">Znalec</span><span class="chip party">Aktuár</span>
+        </div>
+        <div class="stage">
+          <h4>2. Zmluva a prevod</h4>
+          <p>Kúpna zmluva, prevod vlastníctva bytu na fond, zriadenie vecného bremena.</p>
+          <span class="chip party">Advokát</span><span class="chip party">Notár</span><span class="chip reg">Kataster</span><span class="chip reg">Občiansky zákonník</span>
+        </div>
+        <div class="stage">
+          <h4>3. Financovanie</h4>
+          <p>Fond si požičia na kúpu bytu, úver je krytý nehnuteľnosťou.</p>
+          <span class="chip party">Banka</span>
+        </div>
+        <div class="stage">
+          <h4>4. Výplata klientovi</h4>
+          <p>Fond vyplatí kúpnu cenu (jednorazovo alebo ako doživotnú rentu). Klient býva doživotne.</p>
+          <span class="chip core">Fond</span><span class="chip reg">Vecné bremeno v katastri</span>
+        </div>
+        <div class="stage">
+          <h4>5. Dohľad (priebežne)</h4>
+          <p>Dohľad nad produktom, informačné povinnosti, nezávislé poradenstvo pre klienta.</p>
+          <span class="chip reg">NBS</span><span class="chip reg">Ochrana spotrebiteľa</span>
+        </div>
+        <div class="stage">
+          <h4>6. Vysporiadanie pri úmrtí</h4>
+          <p>Vecné bremeno zaniká. Fond predá alebo prenajme byt a splatí bankový úver; zvyšok je zisk.</p>
+          <span class="chip core">Fond</span><span class="chip party">Banka</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel flowpanel">
+      <div class="flowtitle"><span class="tag b">MODEL B</span> Úverová reverzná hypotéka</div>
+      <div class="flowrow">
+        <div class="stage">
+          <h4>1. Ocenenie a nacenenie</h4>
+          <p>Ocenenie bytu a výpočet doživotnej anuity podľa veku a očakávaného dožitia.</p>
+          <span class="chip party">Znalec</span><span class="chip party">Aktuár</span>
+        </div>
+        <div class="stage">
+          <h4>2. Úverová zmluva a záloh</h4>
+          <p>Zmluva o úvere a zriadenie záložného práva na byt. Klient ostáva vlastníkom.</p>
+          <span class="chip party">Advokát</span><span class="chip party">Notár</span><span class="chip reg">Kataster (záložné právo)</span><span class="chip reg">Zákon o spotrebiteľských úveroch</span>
+        </div>
+        <div class="stage">
+          <h4>3. Financovanie</h4>
+          <p>Fond refinancuje výplaty anuít cez senior úver od banky.</p>
+          <span class="chip party">Banka</span>
+        </div>
+        <div class="stage">
+          <h4>4. Doživotná anuita</h4>
+          <p>Fond vypláca mesačnú rentu; dlh sa kumulatívne navyšuje. Byt ostáva klientovi.</p>
+          <span class="chip core">Fond</span>
+        </div>
+        <div class="stage">
+          <h4>5. Zaistenie rizika</h4>
+          <p>Krytie rizika dlhovekosti a toho, že dlh neprevýši hodnotu bytu (NNEG).</p>
+          <span class="chip party">Poisťovňa / zaistiteľ</span>
+        </div>
+        <div class="stage">
+          <h4>6. Dohľad (priebežne)</h4>
+          <p>NBS dohľad, RPMN a informačné povinnosti, ochrana spotrebiteľa, záruka NNEG.</p>
+          <span class="chip reg">NBS</span><span class="chip reg">Zákon o spotrebiteľských úveroch</span>
+        </div>
+        <div class="stage">
+          <h4>7. Vysporiadanie pri úmrtí</h4>
+          <p>Byt sa speňaží, splatí sa dlh a prebytok ide dedičom; prípadný schodok kryje poistka.</p>
+          <span class="chip core">Fond</span><span class="chip party">Banka</span><span class="chip party">Poisťovňa</span>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -301,10 +420,9 @@ function portfolio(p,o){
     const serv=aum*o.servicingPct;
     const rev=orig+rNiB+rIncA+serv;
     // nákladová strana po kategóriách
-    const cFix=Math.pow(1+o.fixGrowth,k);
     const costs={
-      personnel: o.personnelY1*cFix,
-      it: o.itY1*cFix,
+      personnel: o.personnelY1*Math.pow(1+o.personnelGrowth,k),
+      it: o.itY1*Math.pow(1+o.itGrowth,k),
       acquisition: o.cac*newThis,
       origination: o.origCost*newThis,
       compliance: o.compliancePct*aum,
@@ -331,7 +449,7 @@ function getCSS(v){return getComputedStyle(document.documentElement).getProperty
 
 // ====================== UI STATE ======================
 let MODEL='B', METRIC='nav', TABLE_SCN='base', chart;
-const ids=['V0','age','buffer','g','rBank','debtShare','origPct','sellCost','rc','targetLTV','lumpPct','opex','rReq','startYear','projYears','newY1','growth','shareB','servicingPct','personnelY1','itY1','fixGrowth','cac','origCost','compliancePct','overheadPct','reservePct'];
+const ids=['V0','age','buffer','g','rBank','debtShare','origPct','sellCost','rc','targetLTV','lumpPct','opex','rReq','startYear','projYears','newY1','growth','shareB','servicingPct','personnelY1','personnelGrowth','itY1','itGrowth','cac','origCost','compliancePct','overheadPct','reservePct'];
 const pctIds=new Set(['g','rBank','debtShare','origPct','sellCost','rc','targetLTV','lumpPct','opex','rReq']);
 
 function readParams(){
@@ -359,8 +477,9 @@ function syncLabels(){
   g('shareBv').textContent=g('shareB').value+' % B';
   g('servicingPctv').textContent=(+g('servicingPct').value).toLocaleString('sk-SK',{maximumFractionDigits:1})+' %';
   g('personnelY1v').textContent=fmtE(+g('personnelY1').value);
+  g('personnelGrowthv').textContent=g('personnelGrowth').value+' %';
   g('itY1v').textContent=fmtE(+g('itY1').value);
-  g('fixGrowthv').textContent=g('fixGrowth').value+' %';
+  g('itGrowthv').textContent=g('itGrowth').value+' %';
   g('cacv').textContent=fmtE(+g('cac').value);
   g('origCostv').textContent=fmtE(+g('origCost').value);
   g('compliancePctv').textContent=(+g('compliancePct').value).toLocaleString('sk-SK',{maximumFractionDigits:2})+' %';
@@ -372,11 +491,15 @@ function syncLabels(){
 function readPortfolioOpts(){
   const v=id=>parseFloat(document.getElementById(id).value);
   return {startYear:v('startYear'),projYears:v('projYears'),newY1:v('newY1'),growth:v('growth')/100,shareB:v('shareB')/100,servicingPct:v('servicingPct')/100,
-    personnelY1:v('personnelY1'),itY1:v('itY1'),fixGrowth:v('fixGrowth')/100,cac:v('cac'),origCost:v('origCost'),compliancePct:v('compliancePct')/100,overheadPct:v('overheadPct')/100,reservePct:v('reservePct')/100};
+    personnelY1:v('personnelY1'),personnelGrowth:v('personnelGrowth')/100,itY1:v('itY1'),itGrowth:v('itGrowth')/100,cac:v('cac'),origCost:v('origCost'),compliancePct:v('compliancePct')/100,overheadPct:v('overheadPct')/100,reservePct:v('reservePct')/100};
 }
 
 function recalc(){
   syncLabels();
+  const isFlow=MODEL==='F';
+  document.querySelector('.grid').style.display=isFlow?'none':'';
+  document.getElementById('flowSection').style.display=isFlow?'block':'none';
+  if(isFlow) return;
   const p=readParams();
   if(MODEL==='P'){ renderPortfolio(p); return; }
   document.getElementById('costSection').style.display='none';
@@ -507,7 +630,7 @@ function renderPortfolio(p){
     kpi('AUM (kniha)', fmtE(last.aum), Math.round(last.active)+' aktívnych zmlúv');
   renderPortfolioChart(rows);
   renderPortfolioTable(rows,o);
-  renderCostTable(rows);
+  renderCostTable(rows,o);
   document.getElementById('costSection').style.display='block';
   document.getElementById('scnNote').innerHTML='<span><b>Tržby</b> = origination + čistý úrokový výnos (B) + výnos zo zhodnotenia (A) + servisné. <b>EBITDA</b> = tržby mínus prevádzkové náklady (financovanie banky je už započítané v čistom úrokovom výnose).</span>';
   document.getElementById('assumptions').innerHTML='<b>Mix:</b> '+(o.shareB*100).toFixed(0)+' % Model B / '+(100-o.shareB*100).toFixed(0)+' % Model A · nové zmluvy '+Math.round(rows[0].newThis)+' až '+Math.round(last.newThis)+' ('+(o.growth*100).toFixed(0)+' % rast/rok) · priem. hodnota '+fmtE(p.V0)+'. Kumulatívna EBITDA za '+o.projYears+' rokov: <b>'+fmtE(cumEbitda)+'</b>. Náklady riadia posuvníky v sekcii Nákladové predpoklady.';
@@ -547,18 +670,27 @@ const COST_ROWS=[
   ['overhead','Réžia a ostatné'],
   ['reserves','Rizikové rezervy (NNEG)']
 ];
-function renderCostTable(rows){
+function renderCostTable(rows,o){
   const thead=document.querySelector('#costs thead'), tbody=document.querySelector('#costs tbody');
-  thead.innerHTML='<tr><th>Kategória (€)</th>'+rows.map(r=>`<th>${r.year}</th>`).join('')+'<th>Spolu</th></tr>';
+  thead.innerHTML='<tr><th>Kategória (€)</th><th>Predpoklad</th>'+rows.map(r=>`<th>${r.year}</th>`).join('')+'<th>Spolu</th></tr>';
   const sumCat=key=>rows.reduce((a,r)=>a+r.costs[key],0);
   const sumOf=f=>rows.reduce((a,r)=>a+f(r),0);
+  const assume={
+    personnel:`fix ${fmtE(o.personnelY1)} v r.1, rast ${(o.personnelGrowth*100).toFixed(0)} %/r`,
+    it:`fix ${fmtE(o.itY1)} v r.1, rast ${(o.itGrowth*100).toFixed(0)} %/r`,
+    acquisition:`${fmtE(o.cac)} na novú zmluvu`,
+    origination:`${fmtE(o.origCost)} na novú zmluvu`,
+    compliance:`${(o.compliancePct*100).toFixed(2)} % z AUM`,
+    overhead:`${(o.overheadPct*100).toFixed(0)} % z tržieb`,
+    reserves:`${(o.reservePct*100).toFixed(1)} % z objemu nových zmlúv`
+  };
   let html='';
   for(const [key,label] of COST_ROWS){
-    html+=`<tr><td>${label}</td>`+rows.map(r=>`<td>${fmtE0(r.costs[key])}</td>`).join('')+`<td>${fmtE0(sumCat(key))}</td></tr>`;
+    html+=`<tr><td>${label}</td><td class="assume">${assume[key]}</td>`+rows.map(r=>`<td>${fmtE0(r.costs[key])}</td>`).join('')+`<td>${fmtE0(sumCat(key))}</td></tr>`;
   }
-  html+=`<tr class="trtot"><td>Náklady spolu</td>`+rows.map(r=>`<td>${fmtE0(r.costTotal)}</td>`).join('')+`<td>${fmtE0(sumOf(r=>r.costTotal))}</td></tr>`;
-  html+=`<tr class="trctx"><td>Tržby spolu</td>`+rows.map(r=>`<td>${fmtE0(r.rev)}</td>`).join('')+`<td>${fmtE0(sumOf(r=>r.rev))}</td></tr>`;
-  html+=`<tr class="trebitda"><td>EBITDA</td>`+rows.map(r=>`<td>${fmtE0(r.opProfit)}</td>`).join('')+`<td>${fmtE0(sumOf(r=>r.opProfit))}</td></tr>`;
+  html+=`<tr class="trtot"><td>Náklady spolu</td><td></td>`+rows.map(r=>`<td>${fmtE0(r.costTotal)}</td>`).join('')+`<td>${fmtE0(sumOf(r=>r.costTotal))}</td></tr>`;
+  html+=`<tr class="trctx"><td>Tržby spolu</td><td></td>`+rows.map(r=>`<td>${fmtE0(r.rev)}</td>`).join('')+`<td>${fmtE0(sumOf(r=>r.rev))}</td></tr>`;
+  html+=`<tr class="trebitda"><td>EBITDA</td><td></td>`+rows.map(r=>`<td>${fmtE0(r.opProfit)}</td>`).join('')+`<td>${fmtE0(sumOf(r=>r.opProfit))}</td></tr>`;
   tbody.innerHTML=html;
 }
 

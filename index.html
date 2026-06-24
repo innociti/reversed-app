@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Reverzná hypotéka — finančný model</title>
-<meta name="description" content="Interaktívny finančný model reverznej hypotéky pre Slovensko — Model A (predaj s vecným bremenom) a Model B (úverová), P&L po rokoch a scenáre." />
+<title>Reverzná hypotéka: finančný model</title>
+<meta name="description" content="Interaktívny finančný model reverznej hypotéky pre Slovensko. Model A (predaj s vecným bremenom) a Model B (úverová), P&L po rokoch a scenáre." />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root{
@@ -67,22 +67,57 @@ h3.sec{font-size:13px;margin:22px 2px 10px;font-weight:700}
 .flow{font-size:12.5px;line-height:1.9}
 .pill{display:inline-block;padding:2px 8px;border-radius:6px;background:var(--accent-soft);color:var(--accent);font-weight:600;font-size:11.5px}
 .pill.t{background:#e7f6f3;color:var(--teal)} .pill.a{background:#fdf3e3;color:var(--amber)}
+.modelbox{display:grid;grid-template-columns:1fr 1fr;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;margin-bottom:18px;font-size:12.8px;line-height:1.5}
+.modelbox > div{color:var(--muted)}
+.modelbox b{color:var(--ink)}
+.modelbox .tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.3px;padding:2px 8px;border-radius:6px;margin-bottom:6px}
+.modelbox .tag.a{background:#fdf3e3;color:var(--amber)} .modelbox .tag.b{background:var(--accent-soft);color:var(--accent)}
+@media(max-width:760px){.modelbox{grid-template-columns:1fr}}
+#gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999}
+.gatecard{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:28px;width:320px;display:flex;flex-direction:column;gap:10px}
+.gatecard h2{margin:0;font-size:18px}
+.gatecard p{margin:0 0 6px;color:var(--muted);font-size:13px}
+.gatecard input{padding:10px;border:1px solid var(--line);border-radius:8px;font-size:14px}
+.gatecard button{padding:10px;border:0;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;font-size:14px;cursor:pointer}
+.gerr{color:var(--red);font-size:12.5px;min-height:16px}
+body.locked{overflow:hidden}
 </style>
 </head>
 <body>
+<div id="gate">
+  <form id="gateForm" class="gatecard">
+    <h2>Prístup k modelu</h2>
+    <p>Zadajte prihlasovacie údaje.</p>
+    <input id="gUser" type="text" placeholder="Meno" autocomplete="username" autofocus>
+    <input id="gPass" type="password" placeholder="Heslo" autocomplete="current-password">
+    <button type="submit">Vstúpiť</button>
+    <div id="gErr" class="gerr"></div>
+  </form>
+</div>
 <div class="wrap">
   <header class="top">
     <div>
-      <h1>Reverzná hypotéka — finančný model</h1>
+      <h1>Reverzná hypotéka: finančný model</h1>
       <p>Model A (predaj s doživotným užívaním) a Model B (úverová) · P&amp;L po rokoch · scenáre. Vstupy cez posuvníky.</p>
     </div>
     <span class="badge" id="domainBadge">reversed.royalewithcheese.sk</span>
   </header>
 
   <div class="tabs">
-    <div class="tab active" data-model="B">Model B — úverová</div>
-    <div class="tab" data-model="A">Model A — predaj s vecným bremenom</div>
+    <div class="tab active" data-model="B">Model B (úverová)</div>
+    <div class="tab" data-model="A">Model A (predaj s vecným bremenom)</div>
     <div class="tab" data-model="P">P&amp;L portfólio</div>
+  </div>
+
+  <div class="modelbox">
+    <div>
+      <span class="tag a">MODEL A</span>
+      <b>Predaj s vecným bremenom.</b> Fond kúpi byt teraz za diskontovanú cenu. Klient v ňom býva doživotne (vecné bremeno) a zhodnotenie nehnuteľnosti patrí fondu. Klient dostane menej, no s maximálnou istotou; byt nevstupuje do dedičstva.
+    </div>
+    <div>
+      <span class="tag b">MODEL B</span>
+      <b>Úverová reverzná hypotéka.</b> Byt ostáva vo vlastníctve klienta. Fond vypláca doživotnú rentu ako úver krytý záložným právom; dlh sa kumulatívne navyšuje. Po úmrtí sa byt speňaží, splatí sa dlh a prebytok ide dedičom. Súčasťou je záruka, že dlh neprevýši hodnotu bytu (NNEG).
+    </div>
   </div>
 
   <div class="grid">
@@ -101,9 +136,9 @@ h3.sec{font-size:13px;margin:22px 2px 10px;font-weight:700}
         <div class="ctrl"><label>Hodnota nehnuteľnosti <span class="val" id="V0v"></span></label><input type="range" id="V0" min="50000" max="600000" step="5000" value="200000"></div>
         <div class="ctrl"><label>Vstupný vek <span class="val" id="agev"></span></label><input type="range" id="age" min="60" max="85" step="1" value="70"></div>
         <div class="ctrl"><label>Konzervatívny horizont (+rokov) <span class="val" id="bufferv"></span></label><input type="range" id="buffer" min="0" max="12" step="1" value="5"></div>
-        <div class="ctrl"><label>Apreciácia nehnuteľnosti <span class="val" id="gv"></span></label><input type="range" id="g" min="0" max="6" step="0.25" value="3"></div>
+        <div class="ctrl"><label>Zhodnotenie nehnuteľnosti <span class="val" id="gv"></span></label><input type="range" id="g" min="0" max="6" step="0.25" value="3"></div>
         <div class="ctrl"><label>Náklad senior dlhu (banka) <span class="val" id="rBankv"></span></label><input type="range" id="rBank" min="2" max="6" step="0.1" value="3.5"></div>
-        <div class="ctrl"><label>Páka — podiel bank. dlhu <span class="val" id="debtSharev"></span></label><input type="range" id="debtShare" min="0" max="85" step="5" value="80"></div>
+        <div class="ctrl"><label>Loan to Value <span class="val" id="debtSharev"></span></label><input type="range" id="debtShare" min="0" max="85" step="5" value="80"></div>
         <div class="ctrl"><label>Origination poplatok <span class="val" id="origPctv"></span></label><input type="range" id="origPct" min="0" max="3" step="0.25" value="1.5"></div>
         <div class="ctrl"><label>Náklady predaja pri exite <span class="val" id="sellCostv"></span></label><input type="range" id="sellCost" min="0" max="8" step="0.5" value="5"></div>
 
@@ -248,7 +283,7 @@ function portfolio(p,o){
   const Va=t=>p.V0*Math.pow(1+p.g,t);                                          // hodnota bytu (A)
   const bankA=t=>p.debtShare*A.purchase*Math.pow(1+p.rBank,t);
   const niB=t=>p.rc*Db(t)-p.rBank*BbankB(t);                                   // čistý úrok B / zmluva
-  const incA=t=>p.g*Va(t)-p.rBank*bankA(t);                                    // apreciácia − financ. A / zmluva
+  const incA=t=>p.g*Va(t)-p.rBank*bankA(t);                                    // zhodnotenie − financ. A / zmluva
   const newCounts=[]; for(let k=0;k<o.projYears;k++) newCounts[k]=o.newY1*Math.pow(1+o.growth,k);
   const rows=[];
   for(let k=0;k<o.projYears;k++){
@@ -263,7 +298,7 @@ function portfolio(p,o){
     const orig=newThis*p.V0*p.origPct;
     const serv=aum*o.servicingPct;
     const rev=orig+rNiB+rIncA+serv;
-    // nákladová časť — zatiaľ nulové placeholdery
+    // nákladová časť, zatiaľ nulové placeholdery
     const costs={personal:0,it:0,akvizicia:0,rezervy:0};
     const costTotal=costs.personal+costs.it+costs.akvizicia+costs.rezervy;
     rows.push({year:o.startYear+k,newThis,active:activeB+activeA,activeB,activeA,aum,
@@ -421,7 +456,7 @@ function renderScnNote(eng,runs,p){
   const f=(x)=>x.toLocaleString('sk-SK',{maximumFractionDigits:1});
   const parts=['opt','base','pes'].map(k=>{
     const r=runs[k];
-    return `<span><b>${r.sc.name}:</b> apreciácia ${f(r.sc.g*100)} %, banka ${f(r.sc.rBank*100)} %, úmrtie rok ${r.dy}</span>`;
+    return `<span><b>${r.sc.name}:</b> zhodnotenie ${f(r.sc.g*100)} %, banka ${f(r.sc.rBank*100)} %, úmrtie rok ${r.dy}</span>`;
   });
   document.getElementById('scnNote').innerHTML=parts.join('');
 }
@@ -431,9 +466,9 @@ function renderAssumptions(eng,p){
   document.getElementById('assumptions').innerHTML=
   `<b>Predpoklady:</b> Medián dožitia ${tMed} r., konzervatívny horizont ${tPrc} r. (typ klienta určuje očakávaný vek dožitia: pár 90, žena 86, muž 81). `+
   (eng.model==='B'
-    ? `Anuita je nacenená tak, aby narastený dlh dosiahol cieľové LTV (${(p.targetLTV*100).toFixed(0)} %) z apreciovanej hodnoty na horizonte. Dlh sa roluje pri ${(p.rc*100).toFixed(1)} %. NNEG: fond vymáha najviac do hodnoty bytu — prebytok ide dedičom. `
-    : `Kúpna cena = diskontovaná hodnota pri exite na požadovaný výnos fondu (${(p.rReq*100).toFixed(1)} %). Klient si ponecháva vecné bremeno doživotného bývania; apreciáciu vlastní fond. `)+
-  `Páka ${(p.debtShare*100).toFixed(0)} % (banka @ ${(p.rBank*100).toFixed(1)} %). <b>Model je ilustračný</b> — mortalita je zjednodušená, bez aktuárskych tabuliek a poistného krytia longevity.`;
+    ? `Anuita je nacenená tak, aby kumulatívny dlh dosiahol cieľové LTV (${(p.targetLTV*100).toFixed(0)} %) zo zhodnotenej hodnoty na horizonte. Dlh sa roluje pri ${(p.rc*100).toFixed(1)} %. NNEG: fond vymáha najviac do hodnoty bytu, prebytok ide dedičom.`
+    : `Kúpna cena = diskontovaná hodnota pri exite na požadovaný výnos fondu (${(p.rReq*100).toFixed(1)} %). Klient si ponecháva vecné bremeno doživotného bývania; zhodnotenie vlastní fond.`)+
+  `Loan to Value ${(p.debtShare*100).toFixed(0)} % (banka @ ${(p.rBank*100).toFixed(1)} %). <b>Model je ilustračný.</b> Mortalita je zjednodušená, bez aktuárskych tabuliek a poistného krytia longevity.`;
 }
 
 // ====================== PORTFOLIO RENDER ======================
@@ -451,8 +486,8 @@ function renderPortfolio(p){
     kpi('AUM (kniha)', fmtE(last.aum), 'spravované portfólio');
   renderPortfolioChart(rows);
   renderPortfolioTable(rows,o);
-  document.getElementById('scnNote').innerHTML='<span><b>Tržby</b> = origination + čistý úrokový výnos (B) + výnos z apreciácie (A) + servisné. Čistý úrokový výnos už zohľadňuje náklad bankového financovania. Realizované zisky z úmrtí prídu neskôr (mimo tohto horizontu).</span>';
-  document.getElementById('assumptions').innerHTML='<b>Mix:</b> '+(o.shareB*100).toFixed(0)+' % Model B / '+(100-o.shareB*100).toFixed(0)+' % Model A · nové zmluvy '+Math.round(rows[0].newThis)+' → '+Math.round(last.newThis)+' ('+(o.growth*100).toFixed(0)+' % rast/rok) · priem. hodnota '+fmtE(p.V0)+'. <b>Nákladová časť je zatiaľ nulová</b> (osobné náklady, IT/prevádzka, akvizícia, rizikové rezervy) — doplníme neskôr.';
+  document.getElementById('scnNote').innerHTML='<span><b>Tržby</b> = origination + čistý úrokový výnos (B) + výnos zo zhodnotenia (A) + servisné. Čistý úrokový výnos už zohľadňuje náklad bankového financovania. Realizované zisky z úmrtí prídu neskôr (mimo tohto horizontu).</span>';
+  document.getElementById('assumptions').innerHTML='<b>Mix:</b> '+(o.shareB*100).toFixed(0)+' % Model B / '+(100-o.shareB*100).toFixed(0)+' % Model A · nové zmluvy '+Math.round(rows[0].newThis)+' → '+Math.round(last.newThis)+' ('+(o.growth*100).toFixed(0)+' % rast/rok) · priem. hodnota '+fmtE(p.V0)+'. <b>Nákladová časť je zatiaľ nulová</b> (osobné náklady, IT/prevádzka, akvizícia, rizikové rezervy), doplníme neskôr.';
 }
 
 function renderPortfolioChart(rows){
@@ -462,7 +497,7 @@ function renderPortfolioChart(rows){
   const data={labels,datasets:[
     stk('Origination','orig',getCSS('--accent')),
     stk('Čistý úrok. výnos (B)','niB',getCSS('--teal')),
-    stk('Výnos z apreciácie (A)','incA',getCSS('--amber')),
+    stk('Výnos zo zhodnotenia (A)','incA',getCSS('--amber')),
     stk('Servisné','serv','#9aa6c4')
   ]};
   const opts={responsive:true,maintainAspectRatio:true,interaction:{mode:'index',intersect:false},
@@ -475,9 +510,9 @@ function renderPortfolioChart(rows){
 
 function renderPortfolioTable(rows,o){
   const thead=document.querySelector('#pnl thead'), tbody=document.querySelector('#pnl tbody');
-  thead.innerHTML='<tr><th>Rok</th><th>Nové</th><th>Aktívne</th><th>AUM</th><th>Origination</th><th>Čistý úrok (B)</th><th>Apreciácia (A)</th><th>Servisné</th><th>Tržby</th><th>Náklady</th><th>Prevádzk. zisk</th></tr>';
+  thead.innerHTML='<tr><th>Rok</th><th>Nové</th><th>Aktívne</th><th>AUM</th><th>Origination</th><th>Čistý úrok (B)</th><th>Zhodnotenie (A)</th><th>Servisné</th><th>Tržby</th><th>Náklady</th><th>Prevádzk. zisk</th></tr>';
   tbody.innerHTML=rows.map(r=>`<tr><td>${r.year}</td><td>${Math.round(r.newThis)}</td><td>${Math.round(r.active)}</td><td>${fmtE0(r.aum)}</td><td>${fmtE0(r.orig)}</td><td>${fmtE0(r.niB)}</td><td>${fmtE0(r.incA)}</td><td>${fmtE0(r.serv)}</td><td><b>${fmtE0(r.rev)}</b></td><td>${fmtE0(r.costTotal)}</td><td><b>${fmtE0(r.opProfit)}</b></td></tr>`).join('');
-  document.getElementById('tableHint').textContent='Nákladová časť je zatiaľ 0 — prevádzkový zisk = tržby.';
+  document.getElementById('tableHint').textContent='Nákladová časť je zatiaľ 0, prevádzkový zisk = tržby.';
 }
 
 // ====================== EVENTS ======================
@@ -509,6 +544,25 @@ document.querySelectorAll('.mB').forEach(e=>e.style.display='block');
 document.querySelectorAll('.mA').forEach(e=>e.style.display='none');
 document.querySelectorAll('.mP').forEach(e=>e.style.display='none');
 recalc();
+
+// ====================== PRÍSTUPOVÝ BOX ======================
+(function(){
+  const gate=document.getElementById('gate');
+  if(sessionStorage.getItem('rh_auth')==='1'){ gate.style.display='none'; }
+  else { document.body.classList.add('locked'); }
+  document.getElementById('gateForm').addEventListener('submit',e=>{
+    e.preventDefault();
+    const u=document.getElementById('gUser').value.trim().toLowerCase();
+    const p=document.getElementById('gPass').value;
+    if(u==='reversed' && p==='mortgage'){
+      sessionStorage.setItem('rh_auth','1');
+      gate.style.display='none';
+      document.body.classList.remove('locked');
+    } else {
+      document.getElementById('gErr').textContent='Nesprávne meno alebo heslo.';
+    }
+  });
+})();
 </script>
 </body>
 </html>

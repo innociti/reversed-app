@@ -1,0 +1,8 @@
+{
+  "name": "reversed-app",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@vercel/functions": "latest"
+  }
+}

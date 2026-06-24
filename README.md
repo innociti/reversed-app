@@ -82,10 +82,25 @@ dig reversed.royalewithcheese.sk CNAME +short
 ```
 reversed-app/
 ├── index.html      # celá aplikácia (UI + výpočtový engine)
+├── middleware.js   # Vercel Edge Middleware: Basic Auth (ochrana heslom)
+├── package.json    # závislosť @vercel/functions pre middleware
 ├── vercel.json     # statická konfigurácia + bezpečnostné hlavičky
 ├── .gitignore
 └── README.md
 ```
+
+## 6. Ochrana heslom (Basic Auth)
+
+Celá stránka je chránená serverovým HTTP Basic Auth cez Vercel Edge Middleware (`middleware.js`). Predvolené prihlasovacie údaje sú `reversed` / `mortgage`.
+
+Pre produkciu nastav heslo cez premenné prostredia vo Verceli (Settings → Environment Variables), aby nebolo v repozitári:
+
+```
+SITE_USER = <meno>
+SITE_PASSWORD = <heslo>
+```
+
+Ak premenné nie sú nastavené, použijú sa predvolené hodnoty z `middleware.js`. Po pridaní premenných sprav nový deploy.
 
 ## 5. Úprava modelu
 

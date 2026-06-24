@@ -81,6 +81,10 @@ h3.sec{font-size:13px;margin:22px 2px 10px;font-weight:700}
 .gatecard button{padding:10px;border:0;border-radius:8px;background:var(--accent);color:#fff;font-weight:600;font-size:14px;cursor:pointer}
 .gerr{color:var(--red);font-size:12.5px;min-height:16px}
 body.locked{overflow:hidden}
+.costtbl th,.costtbl td{white-space:nowrap}
+.costtbl tr.trtot td{font-weight:700;border-top:2px solid var(--line)}
+.costtbl tr.trctx td{color:var(--muted)}
+.costtbl tr.trebitda td{font-weight:700;color:var(--teal)}
 </style>
 </head>
 <body>
@@ -163,6 +167,15 @@ body.locked{overflow:hidden}
           <div class="ctrl"><label>Medziročný rast objemu <span class="val" id="growthv"></span></label><input type="range" id="growth" min="0" max="100" step="5" value="35"></div>
           <div class="ctrl"><label>Podiel Model B v mixe <span class="val" id="shareBv"></span></label><input type="range" id="shareB" min="0" max="100" step="5" value="70"></div>
           <div class="ctrl"><label>Servisný poplatok (%/r z AUM) <span class="val" id="servicingPctv"></span></label><input type="range" id="servicingPct" min="0" max="2" step="0.1" value="0.5"></div>
+          <p class="sub" style="margin:14px 0 8px;font-weight:700;color:var(--ink)">Nákladové predpoklady</p>
+          <div class="ctrl"><label>Osobné náklady (rok 1) <span class="val" id="personnelY1v"></span></label><input type="range" id="personnelY1" min="0" max="1000000" step="10000" value="180000"></div>
+          <div class="ctrl"><label>IT a platforma (rok 1) <span class="val" id="itY1v"></span></label><input type="range" id="itY1" min="0" max="500000" step="10000" value="60000"></div>
+          <div class="ctrl"><label>Rast fixných nákladov (%/r) <span class="val" id="fixGrowthv"></span></label><input type="range" id="fixGrowth" min="0" max="50" step="5" value="20"></div>
+          <div class="ctrl"><label>Akvizícia na zmluvu <span class="val" id="cacv"></span></label><input type="range" id="cac" min="0" max="3000" step="50" value="400"></div>
+          <div class="ctrl"><label>Oceňovanie, notár, právne / zmluva <span class="val" id="origCostv"></span></label><input type="range" id="origCost" min="0" max="2000" step="50" value="350"></div>
+          <div class="ctrl"><label>Compliance a poistenie (%/r z AUM) <span class="val" id="compliancePctv"></span></label><input type="range" id="compliancePct" min="0" max="1" step="0.05" value="0.3"></div>
+          <div class="ctrl"><label>Réžia (% tržieb) <span class="val" id="overheadPctv"></span></label><input type="range" id="overheadPct" min="0" max="25" step="1" value="8"></div>
+          <div class="ctrl"><label>Rizikové rezervy (% objemu) <span class="val" id="reservePctv"></span></label><input type="range" id="reservePct" min="0" max="5" step="0.5" value="1.5"></div>
         </div>
       </div>
     </div>
@@ -200,6 +213,13 @@ body.locked{overflow:hidden}
           <span class="sub" style="margin:0" id="tableHint"></span>
         </div>
         <div class="tablewrap"><table id="pnl"><thead></thead><tbody></tbody></table></div>
+      </div>
+
+      <div id="costSection" style="display:none">
+        <h3 class="sec">Nákladová strana</h3>
+        <div class="panel">
+          <div class="tablewrap" style="overflow:auto"><table id="costs" class="costtbl"><thead></thead><tbody></tbody></table></div>
+        </div>
       </div>
 
       <div class="foot" id="assumptions"></div>
@@ -298,9 +318,18 @@ function portfolio(p,o){
     const orig=newThis*p.V0*p.origPct;
     const serv=aum*o.servicingPct;
     const rev=orig+rNiB+rIncA+serv;
-    // nákladová časť, zatiaľ nulové placeholdery
-    const costs={personal:0,it:0,akvizicia:0,rezervy:0};
-    const costTotal=costs.personal+costs.it+costs.akvizicia+costs.rezervy;
+    // nákladová strana po kategóriách
+    const cFix=Math.pow(1+o.fixGrowth,k);
+    const costs={
+      personnel: o.personnelY1*cFix,
+      it: o.itY1*cFix,
+      acquisition: o.cac*newThis,
+      origination: o.origCost*newThis,
+      compliance: o.compliancePct*aum,
+      overhead: o.overheadPct*rev,
+      reserves: o.reservePct*(newThis*p.V0)
+    };
+    const costTotal=costs.personnel+costs.it+costs.acquisition+costs.origination+costs.compliance+costs.overhead+costs.reserves;
     rows.push({year:o.startYear+k,newThis,active:activeB+activeA,activeB,activeA,aum,
       orig,niB:rNiB,incA:rIncA,serv,rev,costs,costTotal,opProfit:rev-costTotal});
   }
@@ -320,7 +349,7 @@ function getCSS(v){return getComputedStyle(document.documentElement).getProperty
 
 // ====================== UI STATE ======================
 let MODEL='B', METRIC='nav', TABLE_SCN='base', chart;
-const ids=['V0','age','buffer','g','rBank','debtShare','origPct','sellCost','rc','targetLTV','lumpPct','opex','rReq','startYear','projYears','newY1','growth','shareB','servicingPct'];
+const ids=['V0','age','buffer','g','rBank','debtShare','origPct','sellCost','rc','targetLTV','lumpPct','opex','rReq','startYear','projYears','newY1','growth','shareB','servicingPct','personnelY1','itY1','fixGrowth','cac','origCost','compliancePct','overheadPct','reservePct'];
 const pctIds=new Set(['g','rBank','debtShare','origPct','sellCost','rc','targetLTV','lumpPct','opex','rReq']);
 
 function readParams(){
@@ -347,18 +376,28 @@ function syncLabels(){
   g('growthv').textContent=g('growth').value+' %';
   g('shareBv').textContent=g('shareB').value+' % B';
   g('servicingPctv').textContent=(+g('servicingPct').value).toLocaleString('sk-SK',{maximumFractionDigits:1})+' %';
+  g('personnelY1v').textContent=fmtE(+g('personnelY1').value);
+  g('itY1v').textContent=fmtE(+g('itY1').value);
+  g('fixGrowthv').textContent=g('fixGrowth').value+' %';
+  g('cacv').textContent=fmtE(+g('cac').value);
+  g('origCostv').textContent=fmtE(+g('origCost').value);
+  g('compliancePctv').textContent=(+g('compliancePct').value).toLocaleString('sk-SK',{maximumFractionDigits:2})+' %';
+  g('overheadPctv').textContent=g('overheadPct').value+' %';
+  g('reservePctv').textContent=(+g('reservePct').value).toLocaleString('sk-SK',{maximumFractionDigits:1})+' %';
 }
 
 // ====================== RENDER ======================
 function readPortfolioOpts(){
   const v=id=>parseFloat(document.getElementById(id).value);
-  return {startYear:v('startYear'),projYears:v('projYears'),newY1:v('newY1'),growth:v('growth')/100,shareB:v('shareB')/100,servicingPct:v('servicingPct')/100};
+  return {startYear:v('startYear'),projYears:v('projYears'),newY1:v('newY1'),growth:v('growth')/100,shareB:v('shareB')/100,servicingPct:v('servicingPct')/100,
+    personnelY1:v('personnelY1'),itY1:v('itY1'),fixGrowth:v('fixGrowth')/100,cac:v('cac'),origCost:v('origCost'),compliancePct:v('compliancePct')/100,overheadPct:v('overheadPct')/100,reservePct:v('reservePct')/100};
 }
 
 function recalc(){
   syncLabels();
   const p=readParams();
   if(MODEL==='P'){ renderPortfolio(p); return; }
+  document.getElementById('costSection').style.display='none';
   const eng=MODEL==='B'?modelB(p):modelA(p);
   const sc=scenarios(p);
   const runs={};
@@ -380,13 +419,13 @@ function renderKPIs(eng,runs,p){
   if(eng.model==='B'){
     html+=kpi('Klient dostane', (eng.lump>0?fmtE(eng.lump)+' + ':'')+`<small>mes.</small> `+fmtE(eng.monthly).replace(' €','')+' <small>€/mes</small>','doživotná anuita');
     html+=kpi('Pri úmrtí (báza, rok '+b.dy+')', fmtE(b.deathRow.D), 'dlh klienta · dedičia '+fmtE(b.deathRow.heirs));
-    html+=kpi('Zisk fondu / zmluva', fmtE(b.profit), 'MOIC '+(b.moic?b.moic.toFixed(2)+'×':'–')+' · '+(b.ann!=null?fmtP(b.ann*100)+' p.a.':'–'),'good');
+    html+=kpi('Zisk fondu / zmluva', fmtE(b.profit), 'MOIC '+(b.moic?b.moic.toFixed(2)+'×':'n/a')+' · '+(b.ann!=null?fmtP(b.ann*100)+' p.a.':'n/a'),'good');
     html+=kpi('Cieľový výnos portfólia', fmtP(eng.roe*100), 'ROE steady-state pri tejto páke','good');
   } else {
     html+=kpi('Klient dostane', fmtE(eng.purchase), (eng.factor*100).toFixed(0)+' % hodnoty · ekv. '+fmtE(eng.equivMonthly)+'/mes');
     html+=kpi('Hodnota bytu pri úmrtí', fmtE(b.deathRow.V), 'báza, rok '+b.dy);
-    html+=kpi('Zisk fondu / zmluva', fmtE(b.profit), 'MOIC '+(b.moic?b.moic.toFixed(2)+'×':'–'),'good');
-    html+=kpi('IRR equity (báza)', b.ann!=null?fmtP(b.ann*100):'–', 'ročný výnos investora','good');
+    html+=kpi('Zisk fondu / zmluva', fmtE(b.profit), 'MOIC '+(b.moic?b.moic.toFixed(2)+'×':'n/a'),'good');
+    html+=kpi('IRR equity (báza)', b.ann!=null?fmtP(b.ann*100):'n/a', 'ročný výnos investora','good');
   }
   box.innerHTML=html;
 }
@@ -421,7 +460,7 @@ function renderChart(eng,runs,p){
       datasets.push(line(run.sc.name, seriesFor(run,METRIC,maxY), col,false));
       // death marker point
       const pts=labels.map(l=> l===run.dy ? (METRIC==='nav'?Math.round(run.deathRow.equityNav):Math.round(run.deathRow.profit)) : null);
-      datasets.push({label:run.sc.name+' – úmrtie',data:pts,borderColor:col,backgroundColor:'#fff',pointBorderColor:col,pointBorderWidth:2,pointRadius:6,showLine:false,order:0});
+      datasets.push({label:run.sc.name+' (úmrtie)',data:pts,borderColor:col,backgroundColor:'#fff',pointBorderColor:col,pointBorderWidth:2,pointRadius:6,showLine:false,order:0});
     }
   }
   const data={labels,datasets};
@@ -478,16 +517,18 @@ function renderPortfolio(p){
   const o=readPortfolioOpts();
   const {rows}=portfolio(p,o);
   const last=rows[rows.length-1];
-  const cumRev=rows.reduce((a,r)=>a+r.rev,0);
+  const cumEbitda=rows.reduce((a,r)=>a+r.opProfit,0);
   document.getElementById('kpis').innerHTML=
-    kpi('Tržby '+last.year, fmtE(last.rev), 'posledný rok projekcie','good')+
-    kpi('Kumulatívne tržby', fmtE(cumRev), o.projYears+' r. ('+rows[0].year+'–'+last.year+')','good')+
-    kpi('Aktívne zmluvy', Math.round(last.active).toLocaleString('sk-SK'), Math.round(last.activeB)+' B · '+Math.round(last.activeA)+' A')+
-    kpi('AUM (kniha)', fmtE(last.aum), 'spravované portfólio');
+    kpi('Tržby '+last.year, fmtE(last.rev), 'posledný rok','good')+
+    kpi('Náklady '+last.year, fmtE(last.costTotal), 'prevádzkové náklady')+
+    kpi('EBITDA '+last.year, fmtE(last.opProfit), 'tržby mínus náklady', last.opProfit>=0?'good':'bad')+
+    kpi('AUM (kniha)', fmtE(last.aum), Math.round(last.active)+' aktívnych zmlúv');
   renderPortfolioChart(rows);
   renderPortfolioTable(rows,o);
-  document.getElementById('scnNote').innerHTML='<span><b>Tržby</b> = origination + čistý úrokový výnos (B) + výnos zo zhodnotenia (A) + servisné. Čistý úrokový výnos už zohľadňuje náklad bankového financovania. Realizované zisky z úmrtí prídu neskôr (mimo tohto horizontu).</span>';
-  document.getElementById('assumptions').innerHTML='<b>Mix:</b> '+(o.shareB*100).toFixed(0)+' % Model B / '+(100-o.shareB*100).toFixed(0)+' % Model A · nové zmluvy '+Math.round(rows[0].newThis)+' → '+Math.round(last.newThis)+' ('+(o.growth*100).toFixed(0)+' % rast/rok) · priem. hodnota '+fmtE(p.V0)+'. <b>Nákladová časť je zatiaľ nulová</b> (osobné náklady, IT/prevádzka, akvizícia, rizikové rezervy), doplníme neskôr.';
+  renderCostTable(rows);
+  document.getElementById('costSection').style.display='block';
+  document.getElementById('scnNote').innerHTML='<span><b>Tržby</b> = origination + čistý úrokový výnos (B) + výnos zo zhodnotenia (A) + servisné. <b>EBITDA</b> = tržby mínus prevádzkové náklady (financovanie banky je už započítané v čistom úrokovom výnose).</span>';
+  document.getElementById('assumptions').innerHTML='<b>Mix:</b> '+(o.shareB*100).toFixed(0)+' % Model B / '+(100-o.shareB*100).toFixed(0)+' % Model A · nové zmluvy '+Math.round(rows[0].newThis)+' až '+Math.round(last.newThis)+' ('+(o.growth*100).toFixed(0)+' % rast/rok) · priem. hodnota '+fmtE(p.V0)+'. Kumulatívna EBITDA za '+o.projYears+' rokov: <b>'+fmtE(cumEbitda)+'</b>. Náklady riadia posuvníky v sekcii Nákladové predpoklady.';
 }
 
 function renderPortfolioChart(rows){
@@ -512,7 +553,31 @@ function renderPortfolioTable(rows,o){
   const thead=document.querySelector('#pnl thead'), tbody=document.querySelector('#pnl tbody');
   thead.innerHTML='<tr><th>Rok</th><th>Nové</th><th>Aktívne</th><th>AUM</th><th>Origination</th><th>Čistý úrok (B)</th><th>Zhodnotenie (A)</th><th>Servisné</th><th>Tržby</th><th>Náklady</th><th>Prevádzk. zisk</th></tr>';
   tbody.innerHTML=rows.map(r=>`<tr><td>${r.year}</td><td>${Math.round(r.newThis)}</td><td>${Math.round(r.active)}</td><td>${fmtE0(r.aum)}</td><td>${fmtE0(r.orig)}</td><td>${fmtE0(r.niB)}</td><td>${fmtE0(r.incA)}</td><td>${fmtE0(r.serv)}</td><td><b>${fmtE0(r.rev)}</b></td><td>${fmtE0(r.costTotal)}</td><td><b>${fmtE0(r.opProfit)}</b></td></tr>`).join('');
-  document.getElementById('tableHint').textContent='Nákladová časť je zatiaľ 0, prevádzkový zisk = tržby.';
+  document.getElementById('tableHint').textContent='Výkaz po rokoch. Prevádzk. zisk = EBITDA (tržby mínus náklady).';
+}
+
+const COST_ROWS=[
+  ['personnel','Osobné náklady'],
+  ['it','IT a platforma'],
+  ['acquisition','Akvizícia a marketing'],
+  ['origination','Oceňovanie, notár, právne'],
+  ['compliance','Compliance a poistenie'],
+  ['overhead','Réžia a ostatné'],
+  ['reserves','Rizikové rezervy (NNEG)']
+];
+function renderCostTable(rows){
+  const thead=document.querySelector('#costs thead'), tbody=document.querySelector('#costs tbody');
+  thead.innerHTML='<tr><th>Kategória (€)</th>'+rows.map(r=>`<th>${r.year}</th>`).join('')+'<th>Spolu</th></tr>';
+  const sumCat=key=>rows.reduce((a,r)=>a+r.costs[key],0);
+  const sumOf=f=>rows.reduce((a,r)=>a+f(r),0);
+  let html='';
+  for(const [key,label] of COST_ROWS){
+    html+=`<tr><td>${label}</td>`+rows.map(r=>`<td>${fmtE0(r.costs[key])}</td>`).join('')+`<td>${fmtE0(sumCat(key))}</td></tr>`;
+  }
+  html+=`<tr class="trtot"><td>Náklady spolu</td>`+rows.map(r=>`<td>${fmtE0(r.costTotal)}</td>`).join('')+`<td>${fmtE0(sumOf(r=>r.costTotal))}</td></tr>`;
+  html+=`<tr class="trctx"><td>Tržby spolu</td>`+rows.map(r=>`<td>${fmtE0(r.rev)}</td>`).join('')+`<td>${fmtE0(sumOf(r=>r.rev))}</td></tr>`;
+  html+=`<tr class="trebitda"><td>EBITDA</td>`+rows.map(r=>`<td>${fmtE0(r.opProfit)}</td>`).join('')+`<td>${fmtE0(sumOf(r=>r.opProfit))}</td></tr>`;
+  tbody.innerHTML=html;
 }
 
 // ====================== EVENTS ======================

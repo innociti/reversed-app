@@ -111,6 +111,7 @@ h3.sec{font-size:13px;margin:22px 2px 10px;font-weight:700}
     <div class="tab active" data-model="B">Model B (úverová)</div>
     <div class="tab" data-model="A">Model A (predaj s vecným bremenom)</div>
     <div class="tab" data-model="P">P&amp;L portfólio</div>
+    <div class="tab" data-model="FIN">Financovanie</div>
     <div class="tab" data-model="F">Tok a regulácia</div>
   </div>
 
@@ -193,6 +194,19 @@ h3.sec{font-size:13px;margin:22px 2px 10px;font-weight:700}
           <div class="ctrl"><label>Rizikové rezervy NNEG (% objemu) <span class="val" id="reservePctv"></span></label><input type="range" id="reservePct" min="0" max="5" step="0.5" value="1.5"></div>
           <p class="subnote">Rezerva na riziko, že dlh prevýši hodnotu bytu; z objemu nových zmlúv.</p>
         </div>
+        <div class="modelOnly mFin">
+          <p class="sub" style="margin:0 0 8px;font-weight:700;color:var(--ink)">Financovanie OpCo</p>
+          <div class="ctrl"><label>Rezerva na runway (%) <span class="val" id="runwayBufferv"></span></label><input type="range" id="runwayBuffer" min="0" max="100" step="10" value="30"></div>
+          <div class="ctrl"><label>Pre-seed suma <span class="val" id="preseedAmtv"></span></label><input type="range" id="preseedAmt" min="0" max="1000000" step="50000" value="300000"></div>
+          <div class="ctrl"><label>Pre-seed equity (%) <span class="val" id="preseedPctv"></span></label><input type="range" id="preseedPct" min="0" max="25" step="1" value="10"></div>
+          <div class="ctrl"><label>Seed suma <span class="val" id="seedAmtv"></span></label><input type="range" id="seedAmt" min="0" max="5000000" step="100000" value="1500000"></div>
+          <div class="ctrl"><label>Seed pre-money <span class="val" id="seedPrev"></span></label><input type="range" id="seedPre" min="1000000" max="15000000" step="500000" value="4500000"></div>
+          <div class="ctrl"><label>Series A suma <span class="val" id="seriesAAmtv"></span></label><input type="range" id="seriesAAmt" min="0" max="15000000" step="500000" value="5000000"></div>
+          <div class="ctrl"><label>Series A pre-money <span class="val" id="seriesAPrev"></span></label><input type="range" id="seriesAPre" min="3000000" max="50000000" step="1000000" value="15000000"></div>
+          <div class="ctrl"><label>ESOP pool (%) <span class="val" id="esopPctv"></span></label><input type="range" id="esopPct" min="0" max="20" step="1" value="12"></div>
+          <div class="ctrl"><label>Cieľový výnos fund equity (%) <span class="val" id="fundReqv"></span></label><input type="range" id="fundReq" min="6" max="25" step="1" value="13"></div>
+          <p class="subnote">OpCo equity kryje stratové roky. Fund equity (= 1 mínus Loan to Value) ko-financuje knihu popri bankovom dlhu.</p>
+        </div>
       </div>
     </div>
 
@@ -218,6 +232,7 @@ h3.sec{font-size:13px;margin:22px 2px 10px;font-weight:700}
         <div class="scn" id="scnNote"></div>
       </div>
 
+      <div id="pnlSection">
       <h3 class="sec">P&amp;L po rokoch</h3>
       <div class="panel">
         <div class="row" style="padding:12px 14px 4px;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap">
@@ -230,12 +245,20 @@ h3.sec{font-size:13px;margin:22px 2px 10px;font-weight:700}
         </div>
         <div class="tablewrap"><table id="pnl"><thead></thead><tbody></tbody></table></div>
       </div>
+      </div>
 
       <div id="costSection" style="display:none">
         <h3 class="sec">Nákladová strana</h3>
         <div class="panel">
           <div class="tablewrap" style="overflow:auto"><table id="costs" class="costtbl"><thead></thead><tbody></tbody></table></div>
         </div>
+      </div>
+
+      <div id="finSection" style="display:none">
+        <h3 class="sec">Cap table (OpCo)</h3>
+        <div class="panel"><div class="tablewrap" style="overflow:auto"><table id="captbl" class="costtbl"><thead></thead><tbody></tbody></table></div></div>
+        <h3 class="sec">Fund kapitál na knihu (po rokoch)</h3>
+        <div class="panel"><div class="tablewrap" style="overflow:auto"><table id="fundtbl" class="costtbl"><thead></thead><tbody></tbody></table></div></div>
       </div>
 
       <div class="foot" id="assumptions"></div>
@@ -449,7 +472,7 @@ function getCSS(v){return getComputedStyle(document.documentElement).getProperty
 
 // ====================== UI STATE ======================
 let MODEL='B', METRIC='nav', TABLE_SCN='base', chart;
-const ids=['V0','age','buffer','g','rBank','debtShare','origPct','sellCost','rc','targetLTV','lumpPct','opex','rReq','startYear','projYears','newY1','growth','shareB','servicingPct','personnelY1','personnelGrowth','itY1','itGrowth','cac','origCost','compliancePct','overheadPct','reservePct'];
+const ids=['V0','age','buffer','g','rBank','debtShare','origPct','sellCost','rc','targetLTV','lumpPct','opex','rReq','startYear','projYears','newY1','growth','shareB','servicingPct','personnelY1','personnelGrowth','itY1','itGrowth','cac','origCost','compliancePct','overheadPct','reservePct','runwayBuffer','preseedAmt','preseedPct','seedAmt','seedPre','seriesAAmt','seriesAPre','esopPct','fundReq'];
 const pctIds=new Set(['g','rBank','debtShare','origPct','sellCost','rc','targetLTV','lumpPct','opex','rReq']);
 
 function readParams(){
@@ -485,6 +508,15 @@ function syncLabels(){
   g('compliancePctv').textContent=(+g('compliancePct').value).toLocaleString('sk-SK',{maximumFractionDigits:2})+' %';
   g('overheadPctv').textContent=g('overheadPct').value+' %';
   g('reservePctv').textContent=(+g('reservePct').value).toLocaleString('sk-SK',{maximumFractionDigits:1})+' %';
+  g('runwayBufferv').textContent=g('runwayBuffer').value+' %';
+  g('preseedAmtv').textContent=fmtE(+g('preseedAmt').value);
+  g('preseedPctv').textContent=g('preseedPct').value+' %';
+  g('seedAmtv').textContent=fmtE(+g('seedAmt').value);
+  g('seedPrev').textContent=fmtE(+g('seedPre').value);
+  g('seriesAAmtv').textContent=fmtE(+g('seriesAAmt').value);
+  g('seriesAPrev').textContent=fmtE(+g('seriesAPre').value);
+  g('esopPctv').textContent=g('esopPct').value+' %';
+  g('fundReqv').textContent=g('fundReq').value+' %';
 }
 
 // ====================== RENDER ======================
@@ -501,8 +533,11 @@ function recalc(){
   document.getElementById('flowSection').style.display=isFlow?'block':'none';
   if(isFlow) return;
   const p=readParams();
-  if(MODEL==='P'){ renderPortfolio(p); return; }
+  document.getElementById('pnlSection').style.display='block';
   document.getElementById('costSection').style.display='none';
+  document.getElementById('finSection').style.display='none';
+  if(MODEL==='P'){ renderPortfolio(p); return; }
+  if(MODEL==='FIN'){ renderFinancing(p); return; }
   const eng=MODEL==='B'?modelB(p):modelA(p);
   const sc=scenarios(p);
   const runs={};
@@ -694,6 +729,88 @@ function renderCostTable(rows,o){
   tbody.innerHTML=html;
 }
 
+// ====================== FINANCOVANIE ======================
+function readFinancingOpts(){
+  const v=id=>parseFloat(document.getElementById(id).value);
+  return {runwayBuffer:v('runwayBuffer')/100,preseedAmt:v('preseedAmt'),preseedPct:v('preseedPct')/100,
+    seedAmt:v('seedAmt'),seedPre:v('seedPre'),seriesAAmt:v('seriesAAmt'),seriesAPre:v('seriesAPre'),
+    esopPct:v('esopPct')/100,fundReq:v('fundReq')/100};
+}
+function capTable(fo){
+  let founders=1,preseed=0,esop=0,seed=0,seriesA=0;
+  const snap=()=>({founders,preseed,esop,seed,seriesA});
+  const labels=['Štart'], stages=[snap()];
+  founders*=(1-fo.preseedPct); preseed=fo.preseedPct;
+  labels.push('Po pre-seed'); stages.push(snap());
+  const ep=fo.esopPct; founders*=(1-ep); preseed*=(1-ep); esop=ep;
+  const sp=fo.seedAmt/Math.max(1,(fo.seedPre+fo.seedAmt));
+  founders*=(1-sp); preseed*=(1-sp); esop*=(1-sp); seed=sp;
+  labels.push('Po ESOP+Seed'); stages.push(snap());
+  const ap=fo.seriesAAmt/Math.max(1,(fo.seriesAPre+fo.seriesAAmt));
+  founders*=(1-ap); preseed*=(1-ap); esop*=(1-ap); seed*=(1-ap); seriesA=ap;
+  labels.push('Po Series A'); stages.push(snap());
+  return {labels,stages,raised:fo.preseedAmt+fo.seedAmt+fo.seriesAAmt,founderFinal:founders,
+    preseedPost:fo.preseedPct>0?fo.preseedAmt/fo.preseedPct:0,seedPost:fo.seedPre+fo.seedAmt,aPost:fo.seriesAPre+fo.seriesAAmt};
+}
+function renderCapTable(ct){
+  const thead=document.querySelector('#captbl thead'), tbody=document.querySelector('#captbl tbody');
+  thead.innerHTML='<tr><th>Podiel</th>'+ct.labels.map(l=>`<th>${l}</th>`).join('')+'</tr>';
+  const keys=[['founders','Zakladatelia'],['preseed','Pre-seed'],['esop','ESOP'],['seed','Seed'],['seriesA','Series A']];
+  const pf=v=>v>0.0005?(v*100).toFixed(1)+' %':'-';
+  let html='';
+  for(const [k,label] of keys) html+=`<tr><td>${label}</td>`+ct.stages.map(s=>`<td>${pf(s[k])}</td>`).join('')+'</tr>';
+  html+=`<tr class="trctx"><td>Post-money</td><td>-</td><td>${ct.preseedPost?fmtE0(ct.preseedPost):'-'}</td><td>${fmtE0(ct.seedPost)}</td><td>${fmtE0(ct.aPost)}</td></tr>`;
+  tbody.innerHTML=html;
+}
+function renderFundTable(rows,p){
+  const eqShare=1-p.debtShare;
+  const thead=document.querySelector('#fundtbl thead'), tbody=document.querySelector('#fundtbl tbody');
+  thead.innerHTML='<tr><th>Položka (€)</th>'+rows.map(r=>`<th>${r.year}</th>`).join('')+'</tr>';
+  const aum=rows.map(r=>r.aum), bank=aum.map(a=>a*p.debtShare), eq=aum.map(a=>a*eqShare);
+  const dEq=eq.map((e,i)=>i===0?e:e-eq[i-1]);
+  const row=(l,arr,cls)=>`<tr class="${cls||''}"><td>${l}</td>`+arr.map(v=>`<td>${fmtE0(v)}</td>`).join('')+'</tr>';
+  tbody.innerHTML=row('AUM (kniha)',aum,'trtot')+row('Bankový dlh ('+(p.debtShare*100).toFixed(0)+' %)',bank)+row('Fund equity ('+(eqShare*100).toFixed(0)+' %)',eq,'trebitda')+row('Δ Fund equity (ročná potreba)',dEq);
+}
+function renderFinChart(rows,p){
+  ensureChartType('bar');
+  const labels=rows.map(r=>r.year), eqShare=1-p.debtShare;
+  const ds=(label,arr,col)=>({label,data:arr.map(v=>Math.round(v)),backgroundColor:col,stack:'cap',borderWidth:0,borderRadius:2});
+  const data={labels,datasets:[
+    ds('Bankový dlh',rows.map(r=>r.aum*p.debtShare),getCSS('--accent')),
+    ds('Fund equity',rows.map(r=>r.aum*eqShare),getCSS('--teal'))
+  ]};
+  const opts={responsive:true,maintainAspectRatio:true,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:10,font:{size:11}}},
+      tooltip:{callbacks:{footer:i=>'AUM: '+fmtE(i.reduce((a,x)=>a+x.parsed.y,0)),label:c=>c.dataset.label+': '+fmtE(c.parsed.y)}}},
+    scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{callback:v=>fmtE0(v)},grid:{color:getCSS('--line')}}}};
+  if(chart){chart.data=data;chart.options=opts;chart.update();}
+  else chart=new Chart(document.getElementById('chart'),{type:'bar',data,options:opts});
+}
+function renderFinancing(p){
+  const o=readPortfolioOpts(), fo=readFinancingOpts();
+  const {rows}=portfolio(p,o);
+  let cum=0,minCum=0;
+  for(const r of rows){ cum+=r.opProfit; if(cum<minCum)minCum=cum; }
+  const peakNeed=Math.max(0,-minCum)*(1+fo.runwayBuffer);
+  const ct=capTable(fo), eqShare=1-p.debtShare, last=rows[rows.length-1], fundEqEnd=last.aum*eqShare;
+  document.getElementById('kpis').innerHTML=
+    kpi('OpCo: potreba kapitálu', fmtE(peakNeed), 'kumulatívna strata + '+(fo.runwayBuffer*100).toFixed(0)+' % rezerva','bad')+
+    kpi('OpCo: získané v kolách', fmtE(ct.raised), 'pre-seed + seed + Series A','good')+
+    kpi('Podiel zakladateľov', (ct.founderFinal*100).toFixed(0)+' %', 'po kolách a ESOP')+
+    kpi('Fund equity '+last.year, fmtE(fundEqEnd), 'cca '+(eqShare*100).toFixed(0)+' % AUM na knihu','good');
+  renderFinChart(rows,p);
+  renderCapTable(ct);
+  renderFundTable(rows,p);
+  document.getElementById('pnlSection').style.display='none';
+  document.getElementById('costSection').style.display='none';
+  document.getElementById('finSection').style.display='block';
+  document.getElementById('metricSeg').style.display='none';
+  document.getElementById('tableScnSeg').style.display='none';
+  document.getElementById('chartLegend').style.display='none';
+  document.getElementById('scnNote').innerHTML='<span><b>Graf:</b> kapitál na knihu po rokoch (bankový dlh + fund equity = AUM). Dve vrstvy kapitálu: OpCo equity kryje stratové roky, fund equity ko-financuje knihu popri bankovom dlhu.</span>';
+  document.getElementById('assumptions').innerHTML='<b>OpCo:</b> potreba '+fmtE(peakNeed)+', získané '+fmtE(ct.raised)+', zakladatelia končia na '+(ct.founderFinal*100).toFixed(0)+' %. <b>Fund:</b> equity '+(eqShare*100).toFixed(0)+' % a bankový dlh '+(p.debtShare*100).toFixed(0)+' % z AUM, cieľový výnos fund equity '+(fo.fundReq*100).toFixed(0)+' %. Ilustračné, nie je to finančné poradenstvo.';
+}
+
 // ====================== EVENTS ======================
 ids.forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',recalc);});
 document.getElementById('type').addEventListener('change',recalc);
@@ -702,11 +819,12 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   t.classList.add('active'); MODEL=t.dataset.model;
   document.querySelectorAll('.mA').forEach(e=>e.style.display=MODEL==='A'?'block':'none');
   document.querySelectorAll('.mB').forEach(e=>e.style.display=MODEL==='B'?'block':'none');
-  document.querySelectorAll('.mP').forEach(e=>e.style.display=MODEL==='P'?'block':'none');
-  const isP=MODEL==='P';
-  document.getElementById('metricSeg').style.display=isP?'none':'flex';
-  document.getElementById('tableScnSeg').style.display=isP?'none':'flex';
-  document.getElementById('chartLegend').style.display=isP?'none':'flex';
+  document.querySelectorAll('.mP').forEach(e=>e.style.display=(MODEL==='P'||MODEL==='FIN')?'block':'none');
+  document.querySelectorAll('.mFin').forEach(e=>e.style.display=MODEL==='FIN'?'block':'none');
+  const std=(MODEL==='A'||MODEL==='B');
+  document.getElementById('metricSeg').style.display=std?'flex':'none';
+  document.getElementById('tableScnSeg').style.display=std?'flex':'none';
+  document.getElementById('chartLegend').style.display=std?'flex':'none';
   recalc();
 }));
 document.querySelectorAll('#metricSeg button').forEach(b=>b.addEventListener('click',()=>{
@@ -722,6 +840,7 @@ document.querySelectorAll('#tableScnSeg button').forEach(b=>b.addEventListener('
 document.querySelectorAll('.mB').forEach(e=>e.style.display='block');
 document.querySelectorAll('.mA').forEach(e=>e.style.display='none');
 document.querySelectorAll('.mP').forEach(e=>e.style.display='none');
+document.querySelectorAll('.mFin').forEach(e=>e.style.display='none');
 recalc();
 </script>
 </body>
